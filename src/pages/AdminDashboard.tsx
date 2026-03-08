@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { AnimatePresence, motion } from 'framer-motion';
 import { getRiskColor, getRiskBg } from '@/lib/credibilityEngine';
+import ViolationCharts from '@/components/admin/ViolationCharts';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -241,6 +242,10 @@ const AdminDashboard = () => {
                 </div>
               ))}
             </div>
+
+            {/* Charts */}
+            <h3 className="text-sm font-medium mb-3 mt-8">Analytics</h3>
+            <ViolationCharts violations={violations} attempts={attempts} />
           </div>
         )}
 
