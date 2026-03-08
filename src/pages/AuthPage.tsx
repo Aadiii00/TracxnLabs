@@ -1,35 +1,79 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Shield, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Shield, Eye, EyeOff, ArrowLeft, Mail, CheckCircle2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable/index';
 
+// Common disposable/temporary email domains
+const DISPOSABLE_DOMAINS = new Set([
+  'tempmail.com', 'throwaway.email', 'guerrillamail.com', 'mailinator.com',
+  'yopmail.com', 'sharklasers.com', 'guerrillamailblock.com', 'grr.la',
+  'dispostable.com', 'trashmail.com', 'fakeinbox.com', 'tempail.com',
+  'tempr.email', 'temp-mail.org', 'temp-mail.io', 'mohmal.com',
+  'getnada.com', 'maildrop.cc', 'harakirimail.com', 'tmail.ws',
+  '10minutemail.com', 'minutemail.com', 'emailondeck.com', 'crazymailing.com',
+  'discard.email', 'mailnesia.com', 'spamgourmet.com', 'safetymail.info',
+  'mytemp.email', 'binkmail.com', 'bobmail.info', 'clrmail.com',
+]);
+
+const isDisposableEmail = (email: string): boolean => {
+  const domain = email.split('@')[1]?.toLowerCase();
+  return domain ? DISPOSABLE_DOMAINS.has(domain) : false;
+};
+
+const isValidEmailFormat = (email: string): boolean => {
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return re.test(email);
+};
+
 const AuthPage = () => {
-  const [mode, setMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [mode, setMode] = useState<'login' | 'signup' | 'forgot' | 'verify'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const [resending, setResending] = useState(false);
+  const { signIn, signUp, resendVerification } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === 'login') {
+      if (mode === 'signup') {
+        if (!isValidEmailFormat(email)) {
+          throw new Error('Please enter a valid email address.');
+        }
+        if (isDisposableEmail(email)) {
+          throw new Error('Temporary/disposable email addresses are not allowed. Please use a permanent email.');
+        }
+        if (password.length < 6) {
+          throw new Error('Password must be at least 6 characters.');
+        }
+        const { needsVerification } = await signUp(email, password, fullName);
+        if (needsVerification) {
+          setMode('verify');
+          toast.success('Verification email sent! Check your inbox.');
+        } else {
+          toast.success('Account created!');
+          navigate('/dashboard');
+        }
+      } else if (mode === 'login') {
+        if (!isValidEmailFormat(email)) {
+          throw new Error('Please enter a valid email address.');
+        }
         await signIn(email, password);
         toast.success('Welcome back!');
         navigate('/dashboard');
-      } else if (mode === 'signup') {
-        await signUp(email, password, fullName);
-        toast.success('Account created! Check your email to verify.');
       } else if (mode === 'forgot') {
+        if (!isValidEmailFormat(email)) {
+          throw new Error('Please enter a valid email address.');
+        }
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/reset-password`,
         });
@@ -43,6 +87,73 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      await resendVerification(email);
+      toast.success('Verification email resent! Check your inbox.');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to resend verification email.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  // Verification sent screen
+  if (mode === 'verify') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-sm text-center">
+          <button onClick={() => navigate('/')} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6">
+            <ArrowLeft className="w-4 h-4" /> Back to home
+          </button>
+
+          <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mb-5">
+            <Mail className="w-7 h-7 text-primary" />
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Verify your email</h2>
+          <p className="text-sm text-muted-foreground mb-2">
+            We've sent a verification link to
+          </p>
+          <p className="text-sm font-medium mb-6 break-all">{email}</p>
+
+          <div className="border border-border rounded-lg p-4 mb-6 text-left space-y-2">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">Check your inbox (and spam folder)</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">Click the verification link in the email</p>
+            </div>
+            <div className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">Come back and sign in</p>
+            </div>
+          </div>
+
+          <Button
+            variant="outline"
+            className="w-full mb-3"
+            onClick={handleResend}
+            disabled={resending}
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${resending ? 'animate-spin' : ''}`} />
+            {resending ? 'Sending...' : 'Resend verification email'}
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => { setMode('login'); }}
+          >
+            Back to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
