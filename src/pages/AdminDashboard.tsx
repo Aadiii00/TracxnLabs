@@ -59,7 +59,7 @@ const AdminDashboard = () => {
     doc.setFontSize(20);
     doc.text('Credibility Report', 20, 20);
     doc.setFontSize(12);
-    doc.text(`Student: ${(attempt as any).profiles?.full_name || 'Unknown'}`, 20, 35);
+    doc.text(`Student: ${attempt.user_id?.slice(0, 8)}`, 20, 35);
     doc.text(`Exam: ${(attempt as any).exams?.title || 'Unknown'}`, 20, 45);
     doc.text(`Score: ${attempt.score ?? 'N/A'}%`, 20, 55);
     doc.text(`Credibility: ${attempt.credibility_score ?? 'N/A'}/100`, 20, 65);
