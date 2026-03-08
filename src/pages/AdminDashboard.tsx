@@ -176,7 +176,7 @@ const AdminDashboard = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-medium text-foreground">{(attempt as any).profiles?.full_name || 'Unknown'}</h4>
+                      <h4 className="font-medium text-foreground">{attempt.user_id?.slice(0, 8)}...</h4>
                       <p className="text-sm text-muted-foreground">
                         {(attempt as any).exams?.title} • {new Date(attempt.started_at).toLocaleString()}
                       </p>
