@@ -12,6 +12,8 @@ import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import SecureExamPage from "./pages/SecureExamPage";
 import ResultsPage from "./pages/ResultsPage";
+import CodingProblemsPage from "./pages/CodingProblemsPage";
+import CodingChallengePage from "./pages/CodingChallengePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
