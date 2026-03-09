@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Shield, Users, BookOpen, AlertTriangle, Eye, Download, Filter, LogOut, Plus, Trash2, Activity, Clock, BarChart3, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Shield, Users, BookOpen, AlertTriangle, Eye, Download, Filter, LogOut, Plus, Trash2, Activity, Clock, BarChart3, ToggleLeft, ToggleRight, Code2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
