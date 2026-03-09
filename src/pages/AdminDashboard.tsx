@@ -16,7 +16,7 @@ import jsPDF from 'jspdf';
 const AdminDashboard = () => {
   const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'overview' | 'attempts' | 'exams' | 'create' | 'students' | 'live'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'attempts' | 'exams' | 'create' | 'students' | 'live' | 'coding'>('overview');
   const [attempts, setAttempts] = useState<any[]>([]);
   const [exams, setExams] = useState<any[]>([]);
   const [violations, setViolations] = useState<any[]>([]);
