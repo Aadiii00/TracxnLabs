@@ -141,6 +141,7 @@ const AdminDashboard = () => {
     { key: 'exams', label: 'Exams', icon: BookOpen },
     { key: 'create', label: 'Create', icon: Plus },
     { key: 'students', label: 'Students', icon: Users },
+    { key: 'coding', label: 'Coding', icon: Code2 },
   ] as const;
 
   const totalStudents = profiles.length;
