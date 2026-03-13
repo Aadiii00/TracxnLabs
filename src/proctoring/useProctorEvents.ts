@@ -8,6 +8,8 @@ interface UseProctorEventsOptions {
   onAutoSubmit?: () => void;
   maxTabSwitches?: number;
   maxCriticalViolations?: number;
+  /** Optional inactivity timeout in ms before raising a keyboard inactivity violation */
+  inactivityTimeoutMs?: number;
 }
 
 /**
@@ -19,11 +21,13 @@ export function useProctorEvents({
   onAutoSubmit,
   maxTabSwitches = 5,
   maxCriticalViolations = 3,
+  inactivityTimeoutMs = 120000, // 2 minutes of no key/mouse activity
 }: UseProctorEventsOptions) {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [timeOutside, setTimeOutside] = useState(0);
   const blurStartRef = useRef<number | null>(null);
   const criticalCountRef = useRef(0);
+  const inactivityTimerRef = useRef<number | null>(null);
 
   const handleViolation = useCallback(
     async (type: ViolationType, details: string, severity: 'low' | 'medium' | 'high' | 'critical') => {
@@ -42,6 +46,15 @@ export function useProctorEvents({
   );
 
   useEffect(() => {
+    const resetInactivityTimer = () => {
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+      inactivityTimerRef.current = window.setTimeout(() => {
+        handleViolation('keyboard_shortcut', 'Keyboard inactivity detected', 'medium');
+      }, inactivityTimeoutMs);
+    };
+
     const handleVisibilityChange = () => {
       if (document.hidden) {
         blurStartRef.current = Date.now();
@@ -62,6 +75,7 @@ export function useProctorEvents({
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
+      resetInactivityTimer();
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'c') { e.preventDefault(); handleViolation('copy_attempt', 'Ctrl+C', 'high'); }
         else if (e.key === 'v') { e.preventDefault(); handleViolation('paste_attempt', 'Ctrl+V', 'high'); }
@@ -99,6 +113,11 @@ export function useProctorEvents({
     window.addEventListener('resize', handleResize);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
+    // Also treat mouse movements/clicks as activity
+    window.addEventListener('mousemove', resetInactivityTimer);
+    window.addEventListener('click', resetInactivityTimer);
+    resetInactivityTimer();
+
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('blur', handleBlur);
@@ -110,8 +129,13 @@ export function useProctorEvents({
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('mousemove', resetInactivityTimer);
+      window.removeEventListener('click', resetInactivityTimer);
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
     };
-  }, [handleViolation, maxTabSwitches]);
+  }, [handleViolation, maxTabSwitches, inactivityTimeoutMs]);
 
   return { tabSwitchCount, timeOutside };
 }

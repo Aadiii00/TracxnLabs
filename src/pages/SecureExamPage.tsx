@@ -34,6 +34,8 @@ const SecureExamPage = () => {
   const [submitted, setSubmitted] = useState(false);
   const [violationCounter, setViolationCounter] = useState(0);
   const [examReady, setExamReady] = useState(false);
+  const [examStarted, setExamStarted] = useState(false);
+  const [examPaused, setExamPaused] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [consoleTab, setConsoleTab] = useState<'status' | 'warnings' | 'info'>('status');
@@ -44,7 +46,11 @@ const SecureExamPage = () => {
   // Face detection with 5s grace period
   const handleFaceAnomaly = useCallback((type: 'no_face' | 'multiple_faces' | 'face_not_centered') => {
     setViolationCounter((prev) => prev + 1);
-    const messages = { no_face: 'No face detected for 5+ seconds', multiple_faces: 'Multiple faces detected', face_not_centered: 'Face not centered' };
+    const messages = {
+      no_face: 'Leaving camera view detected.',
+      multiple_faces: 'Multiple faces detected in camera view.',
+      face_not_centered: 'Camera obstruction or face not centered detected.',
+    };
     setWarningMessage(`⚠️ ${messages[type]}`);
     setShowWarning(true);
   }, []);
@@ -58,24 +64,33 @@ const SecureExamPage = () => {
 
   // Violation handler for proctor events
   const handleViolation = useCallback((type: ViolationType, details: string) => {
+    // Track all violations
     setViolationCounter((prev) => prev + 1);
-    if (['tab_switch', 'devtools_open', 'fullscreen_exit', 'camera_disabled'].includes(type)) {
-      setWarningMessage(`⚠️ ${details}`);
-      setShowWarning(true);
-    }
-  }, []);
 
-  const handleAutoSubmit = useCallback(async () => {
-    if (submitted) return;
-    toast.error('Auto-submitted due to violations.');
-    await submitExam('auto_submitted');
-  }, [submitted]);
+    // Map to the categories you mentioned
+    const isLeavingCameraView = ['no_face', 'multiple_faces', 'face_not_centered', 'camera_disabled'].includes(type);
+    const isWindowFocusChange = ['tab_switch', 'window_blur', 'fullscreen_exit', 'window_resize'].includes(type);
+    const isKeyboardActivity = ['copy_attempt', 'paste_attempt', 'cut_attempt', 'keyboard_shortcut', 'devtools_open', 'print_screen', 'right_click'].includes(type);
+
+    const baseMessage =
+      isLeavingCameraView
+        ? 'Leaving camera view or camera obstruction detected.'
+        : isWindowFocusChange
+        ? 'Window focus or screen change detected.'
+        : isKeyboardActivity
+        ? 'Restricted keyboard or mouse interaction detected.'
+        : 'Proctoring rule violation detected.';
+
+    setWarningMessage(`⚠️ ${baseMessage}\n${details}`);
+    setShowWarning(true);
+  }, []);
 
   // Proctor events
   const { tabSwitchCount, timeOutside } = useProctorEvents({
     attemptId,
     onViolation: handleViolation,
-    onAutoSubmit: handleAutoSubmit,
+    maxTabSwitches: 3,
+    maxCriticalViolations: 3,
   });
 
   // Initialize exam
@@ -84,11 +99,34 @@ const SecureExamPage = () => {
     const initExam = async () => {
       const { data: exam } = await supabase.from('exams').select('*').eq('id', examId).single();
       if (!exam) { navigate('/dashboard'); return; }
+
+      // Check if user already completed this exam; if so, redirect to results instead of allowing re-entry
+      const { data: existingAttempts } = await supabase
+        .from('exam_attempts')
+        .select('*')
+        .eq('exam_id', examId)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const latestAttempt = existingAttempts?.[0];
+      if (latestAttempt && (latestAttempt.status === 'completed' || latestAttempt.status === 'auto_submitted')) {
+        navigate(`/results/${latestAttempt.id}`);
+        return;
+      }
+
       setExamTitle(exam.title);
       setTimeLeft(exam.duration_minutes * 60);
       const { data: qs } = await supabase.from('questions').select('*').eq('exam_id', examId).order('order_index');
       setQuestions(qs || []);
-      const { data: attempt } = await supabase.from('exam_attempts').insert({ exam_id: examId, user_id: user.id }).select().single();
+
+      // Create a new attempt (or reuse in-progress one in future if desired)
+      const { data: attempt } = await supabase
+        .from('exam_attempts')
+        .insert({ exam_id: examId, user_id: user.id })
+        .select()
+        .single();
+
       if (attempt) setAttemptId(attempt.id);
       try { await document.documentElement.requestFullscreen(); } catch (e) {}
       startCamera();
@@ -140,12 +178,36 @@ const SecureExamPage = () => {
 
   // Timer
   useEffect(() => {
-    if (timeLeft <= 0 || submitted) return;
+    if (timeLeft <= 0 || submitted || !examReady || !examStarted || examPaused) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => { if (prev <= 1) { submitExam('completed'); return 0; } return prev - 1; });
     }, 1000);
     return () => clearInterval(timer);
-  }, [timeLeft, submitted]);
+  }, [timeLeft, submitted, examReady, examStarted, examPaused]);
+
+  // Global auto-submit after three violations
+  useEffect(() => {
+    if (submitted) return;
+    if (violationCounter >= 3) {
+      toast.error('Exam auto-submitted after 3 violations.');
+      submitExam('auto_submitted');
+    }
+  }, [violationCounter, submitted]);
+
+  // Start/pause exam based on face detection
+  useEffect(() => {
+    if (!examReady || submitted) return;
+    if (faceCount === 1) {
+      if (!examStarted) {
+        setExamStarted(true);
+      }
+      if (examPaused) {
+        setExamPaused(false);
+      }
+    } else if (examStarted && !examPaused) {
+      setExamPaused(true);
+    }
+  }, [faceCount, examReady, submitted, examStarted, examPaused]);
 
   // Camera disable detection
   useEffect(() => {
@@ -228,7 +290,12 @@ const SecureExamPage = () => {
           </div>
 
           {/* Submit */}
-          <Button size="sm" onClick={() => submitExam('completed')} className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium">
+          <Button
+            size="sm"
+            onClick={() => submitExam('completed')}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+            disabled={!examStarted || examPaused}
+          >
             <Send className="w-3.5 h-3.5 mr-1.5" />
             Submit
           </Button>
@@ -395,6 +462,17 @@ const SecureExamPage = () => {
                       </span>
                     </div>
 
+                    {(examPaused || !examStarted) && (
+                      <div className="mb-4 p-3 rounded-md border border-warning/40 bg-warning/10 text-xs text-warning flex items-center gap-2">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        <span>
+                          {examPaused
+                            ? 'Exam paused — ensure exactly one face is clearly visible to resume.'
+                            : 'Align your face with the camera to start the exam.'}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="space-y-2.5">
                       {(questions[currentQuestion]?.options as string[] || []).map((option: string, idx: number) => {
                         const isSelected = answers[questions[currentQuestion].id] === idx;
@@ -403,7 +481,10 @@ const SecureExamPage = () => {
                             key={idx}
                             whileHover={{ scale: 1.005 }}
                             whileTap={{ scale: 0.995 }}
-                            onClick={() => setAnswers({ ...answers, [questions[currentQuestion].id]: idx })}
+                            onClick={() => {
+                              if (!examStarted || examPaused) return;
+                              setAnswers({ ...answers, [questions[currentQuestion].id]: idx });
+                            }}
                             className={`w-full text-left p-4 rounded-lg border text-sm transition-all duration-150 flex items-start gap-3 ${
                               isSelected
                                 ? 'border-primary bg-primary/5 shadow-sm'
@@ -449,6 +530,7 @@ const SecureExamPage = () => {
                           size="sm"
                           onClick={() => submitExam('completed')}
                           className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                          disabled={!examStarted || examPaused}
                         >
                           <Send className="w-4 h-4 mr-1" /> Submit Exam
                         </Button>
