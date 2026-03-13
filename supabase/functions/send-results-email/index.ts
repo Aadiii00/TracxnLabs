@@ -62,7 +62,7 @@ serve(async (req) => {
         </tr>
       </table>
       
-      <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">This is an automated message from ExamGuard.</p>
+      <p style="color:#9ca3af;font-size:12px;margin:0;text-align:center;">This is an automated message from TracxnLabs.</p>
     </div>
   </div>
 </body>
