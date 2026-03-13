@@ -205,7 +205,7 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
             <Shield className="w-3.5 h-3.5" />
-            <span>© 2026 ExamGuard</span>
+            <span>© 2026 Tracxn<span className="text-red-500">Labs</span></span>
           </div>
           <div className="flex gap-4">
             <span>Privacy</span>
