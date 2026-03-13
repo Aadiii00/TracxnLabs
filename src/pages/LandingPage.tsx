@@ -184,7 +184,7 @@ const LandingPage = () => {
         <div className="max-w-6xl mx-auto px-6 py-20">
           <div className="max-w-xl mx-auto text-center">
             <h2 className="text-2xl font-bold text-foreground mb-3">Ready to secure your exams?</h2>
-            <p className="text-muted-foreground mb-6">Join institutions using ExamGuard for integrity-first assessments.</p>
+            <p className="text-muted-foreground mb-6">Join institutions using TracxnLabs for integrity-first assessments.</p>
             <div className="flex flex-col items-start gap-2 mb-8 mx-auto w-fit text-sm text-muted-foreground">
               {['No credit card required', 'Free to get started', 'Full proctoring included'].map((item, i) =>
               <div key={i} className="flex items-center gap-2">
