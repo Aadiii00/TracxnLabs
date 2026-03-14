@@ -15,6 +15,7 @@ import ResultsPage from "./pages/ResultsPage";
 import CodingProblemsPage from "./pages/CodingProblemsPage";
 import CodingChallengePage from "./pages/CodingChallengePage";
 import NotFound from "./pages/NotFound";
+import OAuthCallbackPage from "./pages/OAuthCallbackPage";
 
 const queryClient = new QueryClient();
 
