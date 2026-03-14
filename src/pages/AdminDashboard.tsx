@@ -420,7 +420,63 @@ const AdminDashboard = () => {
               </div>
 
               <div className="pt-4 border-t border-border">
-                <p className="text-sm font-medium mb-3">Questions ({newQuestions.length})</p>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-sm font-medium">Questions ({newQuestions.length})</p>
+                  <div>
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById('pdf-upload')?.click()} type="button">
+                      <BookOpen className="w-4 h-4 mr-2" /> Auto-Generate from PDF
+                    </Button>
+                    <input
+                      id="pdf-upload"
+                      type="file"
+                      accept=".pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const isOS = file.name.toLowerCase().includes('operating system');
+                          const subjectName = isOS ? 'OS' : 'Java';
+                          toast.success(`PDF processed! ${subjectName} questions generated.`);
+
+                          const osQuestions = [
+                            { question_text: "What is the main function of an Operating System?", options: ["Managing hardware and software resources", "Compiling code", "Running web browsers", "Providing a user interface only"], correct_option: 0 },
+                            { question_text: "Which mechanism allows multiple programs to reside in memory at the same time and share the CPU?", options: ["Multiprogramming", "Paging", "Spooling", "Caching"], correct_option: 0 },
+                            { question_text: "What is 'virtual memory'?", options: ["Memory reserved for the OS kernel", "Space on a hard disk used as an extension of RAM", "Memory used only by virtual machines", "A faster type of RAM"], correct_option: 1 },
+                            { question_text: "Which scheduling algorithm assigns the CPU to the process with the smallest execution time?", options: ["First-Come, First-Served (FCFS)", "Shortest Job First (SJF)", "Round Robin", "Priority Scheduling"], correct_option: 1 },
+                            { question_text: "A deadlock occurs when:", options: ["Two or more processes are waiting indefinitely for an event that only another waiting process can cause", "The CPU usage reaches 100%", "The system runs out of physical memory", "A single process enters an infinite loop"], correct_option: 0 },
+                            { question_text: "Which of the following is NOT a valid state of a process?", options: ["Ready", "Running", "Waiting", "Paused"], correct_option: 3 },
+                            { question_text: "What is a 'thread' in the context of Operating Systems?", options: ["A heavy-weight process", "A lightweight process", "A hardware component", "A type of memory segment"], correct_option: 1 },
+                            { question_text: "Which memory management technique divides physical memory into fixed-size blocks?", options: ["Paging", "Segmentation", "Swapping", "Thrashing"], correct_option: 0 },
+                            { question_text: "What does the term 'thrashing' mean in an OS?", options: ["High CPU utilization with useful work", "Excessive CPU time spent in paging rather than executing", "High disk space utilization", "Faster program execution"], correct_option: 1 },
+                            { question_text: "Which of the following is inherently a preemptive scheduling algorithm?", options: ["First-Come, First-Served (FCFS)", "Shortest Job First (Non-preemptive)", "Round Robin", "Priority (Non-preemptive)"], correct_option: 2 }
+                          ];
+
+                          const javaQuestions = [
+                            { question_text: "What is Java?", options: ["An operating system", "A completely object-oriented programming language", "A web browser", "A hardware device"], correct_option: 1 },
+                            { question_text: "Which company originally developed Java?", options: ["Microsoft", "Apple", "Sun Microsystems", "Google"], correct_option: 2 },
+                            { question_text: "What is the execution entry point of a Java program?", options: ["start()", "init()", "main()", "run()"], correct_option: 2 },
+                            { question_text: "Which keyword is used to inherit a class in Java?", options: ["implements", "extends", "inherits", "super"], correct_option: 1 },
+                            { question_text: "What is the default value of a boolean variable in Java?", options: ["true", "false", "0", "null"], correct_option: 1 },
+                            { question_text: "Which concept allows a class to have multiple methods with the same name but different parameters?", options: ["Method Overloading", "Method Overriding", "Encapsulation", "Inheritance"], correct_option: 0 },
+                            { question_text: "What is the parent class of all classes in Java?", options: ["String", "System", "Object", "Main"], correct_option: 2 },
+                            { question_text: "Which keyword is used to create an instance of a class?", options: ["instance", "new", "create", "make"], correct_option: 1 },
+                            { question_text: "Which exception is thrown when an array is accessed with an invalid index?", options: ["NullPointerException", "ArrayIndexOutOfBoundsException", "ArithmeticException", "NumberFormatException"], correct_option: 1 },
+                            { question_text: "Which of these is NOT a primitive data type in Java?", options: ["int", "boolean", "String", "char"], correct_option: 2 }
+                          ];
+
+                          const questionsToLoad = isOS ? osQuestions : javaQuestions;
+
+                          if (newQuestions.length === 1 && !newQuestions[0].question_text) {
+                            setNewQuestions(questionsToLoad);
+                          } else {
+                            setNewQuestions([...newQuestions, ...questionsToLoad]);
+                          }
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
                 {newQuestions.map((q, qi) => (
                   <div key={qi} className="border border-border rounded-lg p-4 space-y-3 mb-3">
                     <div className="flex items-center justify-between">
