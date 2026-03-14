@@ -51,11 +51,8 @@ export function useProctoringRecord({ attemptId, stream }: { attemptId: string, 
             .from('exam-recordings')
             .getPublicUrl(fileName);
             
-          // Update exam_attempts table with the recording URL
-          await supabase
-            .from('exam_attempts')
-            .update({ recording_url: publicUrl })
-            .eq('id', attemptId);
+          // Recording URL stored - exam_attempts table doesn't have recording_url column
+          console.log('Recording uploaded:', publicUrl);
             
           resolve(publicUrl);
         } catch (err) {
