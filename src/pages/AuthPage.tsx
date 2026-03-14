@@ -171,10 +171,10 @@ const AuthPage = () => {
     }
   };
 
-  const SocialButtons = ({ onSuccessRoute }: { onSuccessRoute: '/dashboard' | '/admin' }) => {
+  const SocialButtons = () => {
     const handleGoogleOAuth = async () => {
       const { error } = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/~oauth`,
       });
       if (error) {
         toast.error(error.message || 'Google sign-in failed');
@@ -338,7 +338,7 @@ const AuthPage = () => {
               </Button>
             </form>
 
-            {mode !== 'forgot' && <SocialButtons onSuccessRoute="/dashboard" />}
+            {mode !== 'forgot' && <SocialButtons />}
           </div>
 
           {/* Admin */}
@@ -410,7 +410,7 @@ const AuthPage = () => {
               </Button>
             </form>
 
-            <SocialButtons onSuccessRoute="/admin" />
+            <SocialButtons />
           </div>
         </div>
       </div>
