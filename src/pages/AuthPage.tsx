@@ -349,7 +349,7 @@ const AuthPage = () => {
               </Button>
             </form>
 
-            {mode !== 'forgot' && <SocialButtons onSuccessRoute="/dashboard" />}
+            {mode !== 'forgot' && <SocialButtons />}
           </div>
 
           {/* Admin */}
